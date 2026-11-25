@@ -1,0 +1,26 @@
+name: Push update notification
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+permissions:
+  contents: read
+  id-token: write
+jobs:
+  push:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - id: auth
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: projects/641553991788/locations/global/workloadIdentityPools/github-actions/providers/github
+          service_account: firebase-adminsdk-fbsvc@project-9ce6a5be-41b7-4ac1-a0b.iam.gserviceaccount.com
+          token_format: access_token
+          access_token_scopes: https://www.googleapis.com/auth/firebase.messaging
+      - name: Send FCM topic message
+        env:
+          ACCESS_TOKEN: ${{ steps.auth.outputs.access_token }}
+          FCM_PROJECT_ID: project-9ce6a5be-41b7-4ac1-a0b
+          VERSION_NAME: ${{ github.event.release.name || 'new' }}
+        run: python3 scripts/send_push.py
